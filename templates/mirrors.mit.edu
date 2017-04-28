@@ -1,0 +1,87 @@
+## mirrors.mit.edu configuration
+
+server {
+	listen 80;
+	listen [::]:80;
+
+	#listen 443 ssl http2;
+	#listen [::]:443 ssl http2;
+	#ssl_certificate /etc/ssl/mirrors.mit.edu.pem;
+	#ssl_certificate_key /etc/ssl/private/mirrors.key;
+
+	server_name mirrors.mit.edu ~^solar-(one|two)\.mit\.edu$;
+
+	root /ifs/mirror;
+	index index.html index.htm index.html.en; # .html.en fix for Tor Project
+
+	location / {
+		try_files $uri $uri/ =404;
+		autoindex on;
+	}
+
+	location ~ /\.ht {
+		deny all;
+	}
+}
+
+server {
+	listen 80;
+	listen [::]:80;
+
+	#listen 443 ssl http2;
+	#listen [::]:443 ssl http2;
+	#ssl_certificate /etc/ssl/solar-two.mit.edu.pem;
+	#ssl_certificate_key /etc/ssl/private/mirrors.key;
+
+	server_name solar-two.mit.edu;
+
+	root /ifs/mirror;
+	index index.html index.htm index.html.en; # .html.en fix for Tor Project
+
+	location / {
+		try_files $uri $uri/ =404;
+		autoindex on;
+	}
+
+	location ~ /\.ht {
+		deny all;
+	}
+}
+
+## Proxy for Jenkins
+server {
+	listen 8443;
+	listen [::]:8443;
+	server_name mirrors.mit.edu ~^solar-(one|two).mit.edu$;
+
+	location / {
+		proxy_pass http://18.7.29.123:8080;
+	}
+
+	location ~ ^/api/.+ {
+		deny all;
+	}
+}
+
+## Redirection for old Jenkins port
+server {
+	listen 8080;
+	listen [::]:8080;
+	server_name mirrors.mit.edu ~^solar-(one|two).mit.edu$;
+
+	return 302 http://$host:8443$request_uri;
+}
+
+server {
+	listen 80 default_server;
+	listen [::]:80 default_server;
+	listen 443 default_server;
+	listen [::]:443 default_server;
+	listen 8080 default_server;
+	listen [::]:8080 default_server;
+	listen 8443 default_server;
+	listen [::]:8443 default_server;
+
+	server_name _;
+	return 444;
+}
