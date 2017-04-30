@@ -6,10 +6,15 @@ server {
 
 	#listen 443 ssl http2;
 	#listen [::]:443 ssl http2;
-	#ssl_certificate /etc/ssl/mirrors.mit.edu.pem;
+	#ssl_certificate /etc/ssl/certs/mirrors.mit.edu.pem;
 	#ssl_certificate_key /etc/ssl/private/mirrors.key;
 
-	server_name mirrors.mit.edu ~^solar-(one|two)\.mit\.edu$;
+	server_name mirrors.mit.edu;
+
+	add_header X-Content-Type-Options nosniff;
+	add_header X-Frame-Options "DENY";
+	add_header X-XSS-Protection "1; mode=block";
+	add_header X-Download-Options noopen;
 
 	root /ifs/mirror;
 	index index.html index.htm index.html.en; # .html.en fix for Tor Project
@@ -22,16 +27,30 @@ server {
 	location ~ /\.ht {
 		deny all;
 	}
+
+	# Teapot Easter egg
+	error_page 418 /teapot.html;
+	location /teapot {
+		return 418;
+	}
+	location /teapot.html {
+		internal;
+	}
 }
 
 server {
 	listen 80;
 	listen [::]:80;
 
-	#listen 443 ssl http2;
-	#listen [::]:443 ssl http2;
-	#ssl_certificate /etc/ssl/solar-two.mit.edu.pem;
-	#ssl_certificate_key /etc/ssl/private/mirrors.key;
+	listen 443 ssl http2;
+	listen [::]:443 ssl http2;
+	ssl_certificate /etc/ssl/certs/mirrors_bad.pem;
+	ssl_certificate_key /etc/ssl/private/mirrors.key;
+
+	add_header X-Content-Type-Options nosniff;
+	add_header X-Frame-Options "DENY";
+	add_header X-XSS-Protection "1; mode=block";
+	add_header X-Download-Options noopen;
 
 	server_name solar-two.mit.edu;
 
@@ -46,16 +65,38 @@ server {
 	location ~ /\.ht {
 		deny all;
 	}
+
+	# Teapot Easter egg
+	error_page 418 /teapot.html;
+	location /teapot {
+		return 418;
+	}
+	location /teapot.html {
+		internal;
+	}
 }
 
 ## Proxy for Jenkins
+
+upstream jenkins {
+	server 18.7.29.123:8080;
+}
+
 server {
-	listen 8443;
-	listen [::]:8443;
+	listen 8443 ssl http2;
+	listen [::]:8443 ssl http2;
+	ssl_certificate /etc/ssl/certs/mirrors_bad.pem;
+	ssl_certificate_key /etc/ssl/private/mirrors.key;
+
 	server_name mirrors.mit.edu ~^solar-(one|two).mit.edu$;
 
+	add_header X-Content-Type-Options nosniff;
+	add_header X-Frame-Options "SAMEORIGIN";
+	add_header X-XSS-Protection "1; mode=block";
+	add_header X-Download-Options noopen;
+
 	location / {
-		proxy_pass http://18.7.29.123:8080;
+		proxy_pass http://jenkins;
 	}
 
 	location ~ ^/api/.+ {
@@ -63,24 +104,21 @@ server {
 	}
 }
 
-## Redirection for old Jenkins port
+# Redirection for old Jenkins port
 server {
 	listen 8080;
 	listen [::]:8080;
 	server_name mirrors.mit.edu ~^solar-(one|two).mit.edu$;
 
-	return 302 http://$host:8443$request_uri;
+	return 301 https://$host:8443$request_uri;
 }
 
+# Drop all requests with unknown Host
 server {
 	listen 80 default_server;
 	listen [::]:80 default_server;
-	listen 443 default_server;
-	listen [::]:443 default_server;
 	listen 8080 default_server;
 	listen [::]:8080 default_server;
-	listen 8443 default_server;
-	listen [::]:8443 default_server;
 
 	server_name _;
 	return 444;
