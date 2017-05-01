@@ -4,10 +4,10 @@ server {
 	listen 80;
 	listen [::]:80;
 
-	#listen 443 ssl http2;
-	#listen [::]:443 ssl http2;
-	#ssl_certificate /etc/ssl/certs/mirrors.mit.edu.pem;
-	#ssl_certificate_key /etc/ssl/private/mirrors.key;
+	listen 443 ssl http2;
+	listen [::]:443 ssl http2;
+	ssl_certificate /etc/ssl/certs/mirrors_full.pem;
+	ssl_certificate_key /etc/ssl/private/mirrors.key;
 
 	server_name mirrors.mit.edu;
 
@@ -44,7 +44,7 @@ server {
 
 	listen 443 ssl http2;
 	listen [::]:443 ssl http2;
-	ssl_certificate /etc/ssl/certs/mirrors_bad.pem;
+	ssl_certificate /etc/ssl/certs/mirrors_full.pem;
 	ssl_certificate_key /etc/ssl/private/mirrors.key;
 
 	add_header X-Content-Type-Options nosniff;
@@ -85,7 +85,7 @@ upstream jenkins {
 server {
 	listen 8443 ssl http2;
 	listen [::]:8443 ssl http2;
-	ssl_certificate /etc/ssl/certs/mirrors_bad.pem;
+	ssl_certificate /etc/ssl/certs/mirrors_full.pem;
 	ssl_certificate_key /etc/ssl/private/mirrors.key;
 
 	server_name mirrors.mit.edu ~^solar-(one|two).mit.edu$;
